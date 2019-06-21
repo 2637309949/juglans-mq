@@ -15,6 +15,8 @@ const assert = require('assert').strict;
 
 const is = require('is');
 
+const logger = require('./logger');
+
 const MemoModel = require('./model').MemoModel();
 
 function MQ() {
@@ -128,7 +130,7 @@ MQ.prototype.loop = function () {
             yield _this.model.updateTask(task, {
               status: MQ.status.FAILED
             });
-            console.error(error);
+            logger.error(error);
           }
         }
       }
@@ -186,12 +188,13 @@ module.exports = function () {
     exector: []
   };
   return () => {
+    const mq = MQ({
+      tactics,
+      model,
+      exector
+    });
     return {
-      MQ: MQ({
-        tactics,
-        model,
-        exector
-      })
+      MQ: mq
     };
   };
 };

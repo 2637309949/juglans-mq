@@ -56,6 +56,7 @@
   },
   "dependencies": {
     "is": "^3.3.0",
-    "lodash": "^4.17.11"
+    "lodash": "^4.17.11",
+    "winston": "^3.2.1"
   }
 }
