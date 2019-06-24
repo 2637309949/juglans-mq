@@ -55,6 +55,7 @@
     ]
   },
   "dependencies": {
+    "deepmerge": "^3.3.0",
     "is": "^3.3.0",
     "lodash": "^4.17.11",
     "winston": "^3.2.1"

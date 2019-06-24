@@ -11,6 +11,8 @@ const _ = require('lodash');
 
 const moment = require('moment');
 
+const deepmerge = require('deepmerge');
+
 const assert = require('assert').strict;
 
 const is = require('is');
@@ -19,7 +21,18 @@ const logger = require('./logger');
 
 const MemoModel = require('./model').MemoModel();
 
-function MQ() {
+const defaultOpts = {
+  tactics: [{
+    tactic: {
+      interval: 3,
+      ctCount: 2
+    }
+  }],
+  model: null,
+  exector: []
+};
+
+function Queue() {
   let {
     tactics,
     model,
@@ -30,8 +43,8 @@ function MQ() {
     exector: []
   };
 
-  if (!(this instanceof MQ)) {
-    return new MQ({
+  if (!(this instanceof Queue)) {
+    return new Queue({
       tactics,
       model,
       exector
@@ -39,24 +52,36 @@ function MQ() {
   }
 
   this.tactics = tactics || [];
-  this.tactics.push({
-    tactic: {
-      interval: 3,
-      ctCount: 1
-    }
-  });
+  const opts = deepmerge.all([defaultOpts, {
+    tactics,
+    model,
+    exector
+  }]);
+  tactics = opts.tactics;
+  model = opts.model;
+  exector = opts.exector;
+
+  if (this.tactics.filter(x => x.type === undefined || x.type === null || x.type === '')) {
+    this.tactics.push({
+      tactic: {
+        interval: 3,
+        ctCount: 1
+      }
+    });
+  }
+
   this.exector = exector || [];
   this.model = model || MemoModel;
   this.interval = [];
   this.loop();
 }
 
-MQ.prototype.setModel = function (model) {
+Queue.prototype.setModel = function (model) {
   this.model = model;
   return this;
 };
 
-MQ.prototype.addTactics = function (type, tactic) {
+Queue.prototype.addTactics = function (type, tactic) {
   assert.ok(is.string(type), 'type can not be empty!');
   assert.ok(is.object(tactic), 'tactic can not be empty!');
   const one = this.tactics.find(x => x.type === type);
@@ -74,7 +99,7 @@ MQ.prototype.addTactics = function (type, tactic) {
   return this;
 };
 
-MQ.prototype.loop = function () {
+Queue.prototype.loop = function () {
   const _this = this;
 
   for (const inv of this.interval) {
@@ -107,11 +132,11 @@ MQ.prototype.loop = function () {
         } = exec;
         const tasksProcessing = yield _this.model.findTask({
           type,
-          status: MQ.status.PROCESSING
+          status: Queue.status.PROCESSING
         });
         let tasksInit = yield _this.model.findTask({
           type,
-          status: MQ.status.INIT
+          status: Queue.status.INIT
         });
         tasksInit = _.orderBy(tasksInit, ['_created', 'desc']);
 
@@ -120,15 +145,15 @@ MQ.prototype.loop = function () {
         if (tasksProcessing.length < ctCount && task) {
           try {
             yield _this.model.updateTask(task, {
-              status: MQ.status.PROCESSING
+              status: Queue.status.PROCESSING
             });
             yield handler(task);
             yield _this.model.updateTask(task, {
-              status: MQ.status.SUCCEED
+              status: Queue.status.SUCCEED
             });
           } catch (error) {
             yield _this.model.updateTask(task, {
-              status: MQ.status.FAILED
+              status: Queue.status.FAILED
             });
             logger.error(error);
           }
@@ -140,7 +165,7 @@ MQ.prototype.loop = function () {
   return this;
 };
 
-MQ.prototype.Push = function (_ref2) {
+Queue.prototype.Push = function (_ref2) {
   let {
     type,
     body,
@@ -149,7 +174,7 @@ MQ.prototype.Push = function (_ref2) {
 
   const _created = moment().unix();
 
-  const status = MQ.status.INIT;
+  const status = Queue.status.INIT;
   this.model.saveTask({
     type,
     body,
@@ -160,7 +185,7 @@ MQ.prototype.Push = function (_ref2) {
   return this;
 };
 
-MQ.prototype.Register = function (type, handler) {
+Queue.prototype.Register = function (type, handler) {
   assert.ok(is.string(type), 'type can not be empty!');
   assert.ok(is.function(handler), 'handler can not be empty!');
   this.exector.push({
@@ -170,11 +195,11 @@ MQ.prototype.Register = function (type, handler) {
   return this;
 };
 
-MQ.status = {
+Queue.status = {
   INIT: 'INIT',
-  PROCESSING: 'PROCESSING',
+  FAILED: 'FAILED',
   SUCCEED: 'SUCCEED',
-  FAILED: 'FAILED'
+  PROCESSING: 'PROCESSING'
 };
 
 module.exports = function () {
@@ -188,13 +213,12 @@ module.exports = function () {
     exector: []
   };
   return () => {
-    const mq = MQ({
-      tactics,
-      model,
-      exector
-    });
     return {
-      MQ: mq
+      Queue: Queue({
+        tactics,
+        model,
+        exector
+      })
     };
   };
 };

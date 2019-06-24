@@ -1,7 +1,37 @@
 # juglans-mq
+
     Lightweight queue to improve system throughput
-### Use
+## Example
+
 ```javascript
+const Queue = Queue({
+  tactics: [
+    {
+      tactic: {
+        interval: 3,
+        ctCount: 2
+      }
+    }
+  ]
+})
+app.Use(Queue)
+```
+## API
+
+```javascript
+// set diff property if you want
+const defaultOpts = {
+  tactics: [
+    {
+      tactic: {
+        interval: 3,
+        ctCount: 2
+      }
+    }
+  ],
+  model: null,
+  exector: []
+}
 ```
 ## MIT License
 
