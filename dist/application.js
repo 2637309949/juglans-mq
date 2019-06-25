@@ -214,7 +214,7 @@ module.exports = function () {
   };
   return () => {
     return {
-      Queue: Queue({
+      queue: Queue({
         tactics,
         model,
         exector
