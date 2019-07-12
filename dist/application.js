@@ -7,8 +7,6 @@ function _asyncToGenerator(fn) { return function () { var self = this, args = ar
 // Copyright (c) 2018-2020 Double.  All rights reserved.
 // Use of this source code is governed by a MIT style
 // license that can be found in the LICENSE file.
-const _ = require('lodash');
-
 const moment = require('moment');
 
 const deepmerge = require('deepmerge');
@@ -61,7 +59,7 @@ function Queue() {
   model = opts.model;
   exector = opts.exector;
 
-  if (this.tactics.filter(x => x.type === undefined || x.type === null || x.type === '')) {
+  if (this.tactics.filter(x => x.type === undefined || x.type === null || x.type === '').length === 0) {
     this.tactics.push({
       tactic: {
         interval: 3,
@@ -106,17 +104,16 @@ Queue.prototype.loop = function () {
     clearInterval(inv);
   }
 
-  for (const tactic of this.tactics) {
-    const {
-      type,
-      tactic: {
-        interval,
-        ctCount
-      }
-    } = tactic;
-    setInterval(
+  for (const item of this.tactics) {
+    const inv = setInterval((item =>
     /*#__PURE__*/
     _asyncToGenerator(function* () {
+      let {
+        type,
+        tactic: {
+          ctCount
+        }
+      } = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : item;
       let exector;
 
       if (!type) {
@@ -130,19 +127,16 @@ Queue.prototype.loop = function () {
           type,
           handler
         } = exec;
-        const tasksProcessing = yield _this.model.findTask({
+        const proccessing = yield _this.model.findTask({
           type,
           status: Queue.status.PROCESSING
         });
-        let tasksInit = yield _this.model.findTask({
+        let [task] = yield _this.model.findTask({
           type,
           status: Queue.status.INIT
         });
-        tasksInit = _.orderBy(tasksInit, ['_created', 'desc']);
 
-        const task = _.first(tasksInit);
-
-        if (tasksProcessing.length < ctCount && task) {
+        if (proccessing.length < ctCount && task) {
           try {
             yield _this.model.updateTask(task, {
               status: Queue.status.PROCESSING
@@ -159,7 +153,8 @@ Queue.prototype.loop = function () {
           }
         }
       }
-    }), interval * 1000);
+    }))(item), item.tactic.interval * 1000);
+    this.interval.push(inv);
   }
 
   return this;
