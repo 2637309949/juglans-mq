@@ -57,7 +57,7 @@
   "dependencies": {
     "deepmerge": "^3.3.0",
     "is": "^3.3.0",
-    "juglans-addition": "^1.0.5",
+    "juglans-addition": "^1.0.7",
     "lodash": "^4.17.15"
   }
 }
