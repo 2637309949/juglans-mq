@@ -17,13 +17,13 @@ const is = require('is');
 
 const logger = require('./logger');
 
-const MemoModel = require('./model').MemoModel();
+const Memo = require('./model').Memo();
 
 const defaultOpts = {
   tactics: [{
     tactic: {
       interval: 3,
-      ctCount: 2
+      asyncCount: 2
     }
   }],
   model: null,
@@ -63,13 +63,13 @@ function Queue() {
     this.tactics.push({
       tactic: {
         interval: 3,
-        ctCount: 1
+        asyncCount: 1
       }
     });
   }
 
   this.exector = exector || [];
-  this.model = model || MemoModel;
+  this.model = model || Memo;
   this.interval = [];
   this.loop();
 }
@@ -97,12 +97,22 @@ Queue.prototype.addTactics = function (type, tactic) {
   return this;
 };
 
-Queue.prototype.loop = function () {
-  const _this = this;
-
+Queue.prototype.stopTactic = function () {
   for (const inv of this.interval) {
     clearInterval(inv);
   }
+
+  this.interval = [];
+};
+
+Queue.prototype.loop = function () {
+  this.stopTactic();
+  this.startTactic();
+  return this;
+};
+
+Queue.prototype.startTactic = function () {
+  const _this = this;
 
   for (const item of this.tactics) {
     const inv = setInterval((item =>
@@ -111,7 +121,7 @@ Queue.prototype.loop = function () {
       let {
         type,
         tactic: {
-          ctCount
+          asyncCount = 1
         }
       } = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : item;
       let exector;
@@ -127,26 +137,26 @@ Queue.prototype.loop = function () {
           type,
           handler
         } = exec;
-        const proccessing = yield _this.model.findTask({
+        const pTaskCount = yield _this.model.count({
           type,
           status: Queue.status.PROCESSING
         });
-        let [task] = yield _this.model.findTask({
+        let task = yield _this.model.find({
           type,
           status: Queue.status.INIT
         });
 
-        if (proccessing.length < ctCount && task) {
+        if (pTaskCount < asyncCount && task) {
           try {
-            yield _this.model.updateTask(task, {
+            yield _this.model.update(task, {
               status: Queue.status.PROCESSING
             });
             yield handler(task);
-            yield _this.model.updateTask(task, {
+            yield _this.model.update(task, {
               status: Queue.status.SUCCEED
             });
           } catch (error) {
-            yield _this.model.updateTask(task, {
+            yield _this.model.update(task, {
               status: Queue.status.FAILED
             });
             logger.error(error);
@@ -170,7 +180,7 @@ Queue.prototype.Push = function (_ref2) {
   const _created = moment().unix();
 
   const status = Queue.status.INIT;
-  this.model.saveTask({
+  this.model.save({
     type,
     body,
     _created,

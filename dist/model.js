@@ -7,15 +7,15 @@ function _asyncToGenerator(fn) { return function () { var self = this, args = ar
 // Copyright (c) 2018-2020 Double.  All rights reserved.
 // Use of this source code is governed by a MIT style
 // license that can be found in the LICENSE file.
-function MemoModel() {
-  if (!(this instanceof MemoModel)) {
-    return new MemoModel();
+function Memo() {
+  if (!(this instanceof Memo)) {
+    return new Memo();
   }
 
   this.db = [];
 }
 
-MemoModel.prototype.saveTask =
+Memo.prototype.save =
 /*#__PURE__*/
 function () {
   var _ref2 = _asyncToGenerator(function* (_ref) {
@@ -42,7 +42,7 @@ function () {
   };
 }();
 
-MemoModel.prototype.findTask =
+Memo.prototype.find =
 /*#__PURE__*/
 function () {
   var _ref4 = _asyncToGenerator(function* (_ref3) {
@@ -50,7 +50,7 @@ function () {
       type,
       status
     } = _ref3;
-    return this.db.filter(x => x.type === type && x.status === status);
+    return this.db.filter(x => x.type === type && x.status === status)[0];
   });
 
   return function (_x2) {
@@ -58,13 +58,29 @@ function () {
   };
 }();
 
-MemoModel.prototype.updateTask =
+Memo.prototype.count =
 /*#__PURE__*/
 function () {
-  var _ref6 = _asyncToGenerator(function* (task, _ref5) {
+  var _ref6 = _asyncToGenerator(function* (_ref5) {
     let {
+      type,
       status
     } = _ref5;
+    return this.db.filter(x => x.type === type && x.status === status).length;
+  });
+
+  return function (_x3) {
+    return _ref6.apply(this, arguments);
+  };
+}();
+
+Memo.prototype.update =
+/*#__PURE__*/
+function () {
+  var _ref8 = _asyncToGenerator(function* (task, _ref7) {
+    let {
+      status
+    } = _ref7;
     const one = this.db.find(x => x.id === task.id);
 
     if (one) {
@@ -72,9 +88,9 @@ function () {
     }
   });
 
-  return function (_x3, _x4) {
-    return _ref6.apply(this, arguments);
+  return function (_x4, _x5) {
+    return _ref8.apply(this, arguments);
   };
 }();
 
-module.exports.MemoModel = MemoModel;
+module.exports.Memo = Memo;
